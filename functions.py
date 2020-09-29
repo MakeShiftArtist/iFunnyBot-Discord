@@ -6,6 +6,10 @@ import timeago, datetime
 def props(cls):
   return [i for i in cls.__dict__.keys() if i[:1] != '_']
 
+def ifunnyuser(data):
+    user = objects.User.by_nick(data, client=robot)
+    if user == None:
+        return objects.User(id=data, client=robot)
 
 def createUserEmbed(user, lastSeen=None, isActive=None):
     userData = user._object_data
