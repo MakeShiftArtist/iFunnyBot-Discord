@@ -10,7 +10,7 @@ import requests
 import csv
 from io import StringIO
 from time import strftime, localtime, sleep
-from functions import createUserEmbed, createIPEmbed, createIPLookupEmbed
+from functions import createUserEmbed, createIPEmbed, createIPLookupEmbed, ifunnyuser
 
 
 @robot.event(name = "on_connect")
@@ -38,26 +38,9 @@ def _reply_with_same(message, args):
 
 # User's information
 @bot.command()
-async def userid(ctx, id: str):
-    try:
-        user = objects.User(id=id, client=robot)
-        last_seen = None
-        if (user.can_chat and not user.id == "5d69ed55a5369476372aa2af"):
-            for i in user.chat.members:
-                if(i.__dict__['id'] == user.id):
-                    if(i.__dict__['_sb_data_payload']['last_seen_at']):
-                        last_seen = i.__dict__['_sb_data_payload']['last_seen_at']
-                        return await ctx.send(embed=createUserEmbed(user, lastSeen = last_seen))
-        return await ctx.send(embed=createUserEmbed(user))
-    except Exception as e:
-        embedVar = discord.Embed(title="Failed", description="Information about user %s failed" % id, color=0xFF0000)
-        embedVar.add_field(name="Reason", value=str(e))
-        return await ctx.send(embed=embedVar)
-
-@bot.command()
 async def user(ctx, username: str):
     try:
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
         last_seen = None
         if (user.can_chat and not user.id == "5d69ed55a5369476372aa2af"):
             for i in user.chat.members:
@@ -78,7 +61,7 @@ async def ip(ctx, username: str):
         print(ctx.message.author.id not in allowedToGrabIPs)
         if (ctx.message.author.id not in allowedToGrabIPs):
             raise Exception("You are not allowed to IP grab users. Please ask Request#0002 to grab a user for you.")
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
         if user.id == "5d69ed55a5369476372aa2af":
             raise Exception("You are not allowed to IP grab this user.")
         if user.id == "5f3174c2ec5740481655d41a":
@@ -97,7 +80,7 @@ async def ip(ctx, username: str):
 @bot.command()
 async def checkip(ctx, username: str):
     try:
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
         if user.id == "5d69ed55a5369476372aa2af":
             raise Exception("You are not allowed to IP grab this user.")
         if user.id == "5f3174c2ec5740481655d41a":
@@ -122,7 +105,10 @@ async def checkip(ctx, username: str):
 @bot.command()
 async def subscribe(ctx, username: str):
     try:
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
+        if user.is_subscription:
+            user.unsubscribe()
+            return await ctx.send("unsubbed lol")
         user.subscribe()
         return await ctx.send("subbed lol")
     except Exception as e:
@@ -130,25 +116,15 @@ async def subscribe(ctx, username: str):
         embedVar.add_field(name="Reason", value=str(e))
         return await ctx.send(embed=embedVar)
 
-@bot.command()
-async def unsubscribe(ctx, username: str):
-    try:
-        user = objects.User.by_nick(username, client=robot)
-        user.unsubscribe()
-        return await ctx.send("unsubbed lol")
-    except Exception as e:
-        embedVar = discord.Embed(title="Failed", description="Subscription to user %s failed" % username, color=0xFF0000)
-        embedVar.add_field(name="Reason", value=str(e))
-        return await ctx.send(embed=embedVar)
 
 @bot.command()
 async def smileall(ctx, username: str):
     try:
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
         if user.post_count > 50:
             await ctx.send("Smiling first 50 posts")
         else:
-            await ctx.send("Smiling all of {userNick}'s posts".format(userNick=user.nick))
+            await ctx.send(f"Smiling all of {user.nick}'s posts")
         count = 0
         for i in user.timeline:
             print("Smiling post {url}".format(url=i.link))
@@ -182,7 +158,7 @@ async def ipinfo(ctx, ip: str):
 @bot.command()
 async def posts(ctx, username: str):
     try:
-        user = objects.User.by_nick(username, client=robot)
+        user = ifunnyuser(username)
         fieldnames = ['url', 'fileURL', 'tags', 'created_at', 'publish_at', 'featured', 'smiles', 'unsmiles', 'republications', 'shares', 'views', 'comments', 'visibility', 'deleted_by_mods']
         if user.post_count > 50:
             await ctx.send("Collecting posts... This may take a while.")
